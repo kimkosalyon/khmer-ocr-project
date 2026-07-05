@@ -2,15 +2,18 @@
 
 ## Project Overview
 
-This repository trains and serves Khmer OCR models. The current primary model is a ResNet34 + 2-layer BiGRU + CTC recognizer trained on a generated 200k Siemreap/Arial dataset.
+This repository trains, evaluates, documents, and serves Khmer OCR models. The current primary model is a ResNet34 + 2-layer BiGRU + CTC recognizer trained on a generated 200k Siemreap/Arial dataset. A lighter ResNet18 + BiGRU + CTC comparison model is also trained and uploaded to the same Hugging Face model repo.
 
 Key components:
 
-- `scripts/train_200k_resnet34_bigru.py` is the active training entry point.
+- `scripts/train_200k_resnet34_bigru.py` is the shared active 200k training pipeline for ResNet34 + BiGRU + CTC.
+- `scripts/train_200k_resnet18_bigru.py` is the lighter ResNet18 + BiGRU + CTC comparison entry point.
 - `scripts/serve.py` is the Streamlit OCR demo.
 - `scripts/generate_200k_siemreap_arial.py` generates the current synthetic dataset.
+- `scripts/upload_to_hf.py` uploads model checkpoints/cards to Hugging Face model repos using `.env` tokens.
 - `renderer/server.js` is the Node/Sone renderer used to create Khmer text images.
 - `checkpoints_200k/siemreap_arial_ocr_bs256_epoch_25.safetensors` is the current best checkpoint, with final normalized test CER around `0.18%`.
+- `checkpoints_200k_resnet18_bigru/siemreap_arial_ocr_bs256_epoch_25.safetensors` is the ResNet18 comparison checkpoint, with final test CER around `0.45%`.
 
 The older Hanuman/HF training scripts have been moved to `scripts/archive/` and should not be treated as the main workflow.
 
@@ -47,7 +50,7 @@ PORT=3458 node server.js
 
 ## Primary Workflows
 
-Train or resume the 200k OCR model:
+Train or resume the ResNet34 200k OCR model:
 
 ```bash
 uv run python scripts/train_200k_resnet34_bigru.py \
@@ -65,6 +68,22 @@ uv run python scripts/train_200k_resnet34_bigru.py \
 ```
 
 Important: `--epochs` is the final target epoch, not the number of extra epochs. If resuming from epoch 15 with `--epochs 25`, training runs epochs 16 through 25.
+
+Train or resume the ResNet18 comparison model:
+
+```bash
+uv run python scripts/train_200k_resnet18_bigru.py \
+  --data-dir generated/training_200k_siemreap_arial \
+  --epochs 25 \
+  --batch-size 256 \
+  --lr 1e-4 \
+  --height 64 \
+  --val-split 0.1 \
+  --test-split 0.1 \
+  --device cuda \
+  --num-workers 12 \
+  --checkpoint-dir checkpoints_200k_resnet18_bigru
+```
 
 Run the Streamlit demo:
 
@@ -94,6 +113,23 @@ uv run python scripts/upload_to_hub.py \
   --num-proc 16
 ```
 
+Upload or refresh the dataset README/card on Hugging Face:
+
+```bash
+uv run python scripts/upload_dataset_readme.py \
+  --repo-id KimkosalYon/khmer-ocr-200k-siemreap-arial
+```
+
+Upload model checkpoints/cards to the existing Hugging Face model repo. The repo contains both the ResNet34 checkpoint and the ResNet18 comparison checkpoint:
+
+```bash
+uv run python scripts/upload_to_hf.py \
+  --repo-id KimkosalYon/siemreap-arial-khmer-ocr \
+  --checkpoint-path checkpoints_200k/siemreap_arial_ocr_bs256_epoch_25.safetensors \
+  --vocab-path checkpoints_200k/vocab.json \
+  --readme-path checkpoints_200k/README.md
+```
+
 Prepare a YOLO text detector dataset from generated images, without training:
 
 ```bash
@@ -113,10 +149,13 @@ training-ocr/
     config.py                 # Legacy train config dataclass
     render.py                 # Python rendering helpers if needed
   scripts/
-    train_200k_resnet34_bigru.py  # Active production training script
+    train_200k_resnet34_bigru.py  # Active ResNet34 production/shared training script
+    train_200k_resnet18_bigru.py   # ResNet18 comparison training script
     serve.py                  # Streamlit OCR demo with optional YOLO text boxes
     generate_200k_siemreap_arial.py
+    upload_to_hf.py           # Safe HF model uploader/card generator, no hardcoded token
     upload_to_hub.py          # Safe HF dataset uploader, no hardcoded token
+    upload_dataset_readme.py  # Uploads HF dataset card/README only
     prepare_yolo_text_detector.py
     archive/                  # Legacy training scripts
   renderer/
@@ -124,7 +163,8 @@ training-ocr/
     render.js                 # CLI renderer
     fonts/                    # Khmer and Latin font files
   generated/                  # Local generated datasets; large artifact directory
-  checkpoints_200k/           # Current model checkpoints
+  checkpoints_200k/           # Current ResNet34 model checkpoints and model card
+  checkpoints_200k_resnet18_bigru/  # ResNet18 comparison checkpoints/metrics
   checkpoints/                # Older Hanuman checkpoints
   kmwiki_data/                # Local Khmer wiki text corpus
 ```
@@ -133,7 +173,7 @@ Generated datasets, checkpoints, archives, virtualenvs, and Node modules are art
 
 ## Model and Data Details
 
-The active recognizer in `scripts/train_200k_resnet34_bigru.py` uses:
+The active ResNet34 recognizer in `scripts/train_200k_resnet34_bigru.py` uses:
 
 - ResNet34 backbone adapted to grayscale input.
 - Asymmetric stride patching in ResNet layers 3 and 4 to preserve sequence width.
@@ -152,6 +192,8 @@ The current 200k dataset is intended to contain:
 - English-only rows, if present from sources, rendered with Arial.
 - Controlled color/background variation and tight/zero padding variation.
 
+The Hanuman-derived half of the dataset is sourced from `seanghay/khmer-hanuman-100k`; credit the original owner/uploader `seanghay` in dataset/model cards and papers.
+
 ## Testing and Verification
 
 There is no formal test suite yet. Use syntax checks and small smoke runs.
@@ -159,7 +201,7 @@ There is no formal test suite yet. Use syntax checks and small smoke runs.
 Syntax-check Python files:
 
 ```bash
-uv run python -m py_compile scripts/train_200k_resnet34_bigru.py scripts/serve.py scripts/generate_200k_siemreap_arial.py scripts/upload_to_hub.py
+uv run python -m py_compile scripts/train_200k_resnet34_bigru.py scripts/train_200k_resnet18_bigru.py scripts/serve.py scripts/generate_200k_siemreap_arial.py scripts/upload_to_hf.py scripts/upload_to_hub.py scripts/upload_dataset_readme.py
 ```
 
 Smoke-test text generation only:
@@ -248,6 +290,7 @@ The YOLO detector is not trained by default. `scripts/prepare_yolo_text_detector
 Keep source changes focused on:
 
 - `scripts/train_200k_resnet34_bigru.py`
+- `scripts/train_200k_resnet18_bigru.py`
 - `scripts/serve.py`
 - `scripts/generate_200k_siemreap_arial.py`
 - `scripts/upload_to_hub.py`
