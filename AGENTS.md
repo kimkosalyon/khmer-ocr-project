@@ -6,7 +6,7 @@ This repository trains and serves Khmer OCR models. The current primary model is
 
 Key components:
 
-- `scripts/train_200k.py` is the active training entry point.
+- `scripts/train_200k_resnet34_bigru.py` is the active training entry point.
 - `scripts/serve.py` is the Streamlit OCR demo.
 - `scripts/generate_200k_siemreap_arial.py` generates the current synthetic dataset.
 - `renderer/server.js` is the Node/Sone renderer used to create Khmer text images.
@@ -50,7 +50,7 @@ PORT=3458 node server.js
 Train or resume the 200k OCR model:
 
 ```bash
-uv run python scripts/train_200k.py \
+uv run python scripts/train_200k_resnet34_bigru.py \
   --data-dir generated/training_200k_siemreap_arial \
   --epochs 25 \
   --batch-size 256 \
@@ -113,7 +113,7 @@ training-ocr/
     config.py                 # Legacy train config dataclass
     render.py                 # Python rendering helpers if needed
   scripts/
-    train_200k.py             # Active production training script
+    train_200k_resnet34_bigru.py  # Active production training script
     serve.py                  # Streamlit OCR demo with optional YOLO text boxes
     generate_200k_siemreap_arial.py
     upload_to_hub.py          # Safe HF dataset uploader, no hardcoded token
@@ -133,7 +133,7 @@ Generated datasets, checkpoints, archives, virtualenvs, and Node modules are art
 
 ## Model and Data Details
 
-The active recognizer in `scripts/train_200k.py` uses:
+The active recognizer in `scripts/train_200k_resnet34_bigru.py` uses:
 
 - ResNet34 backbone adapted to grayscale input.
 - Asymmetric stride patching in ResNet layers 3 and 4 to preserve sequence width.
@@ -159,7 +159,7 @@ There is no formal test suite yet. Use syntax checks and small smoke runs.
 Syntax-check Python files:
 
 ```bash
-uv run python -m py_compile scripts/train_200k.py scripts/serve.py scripts/generate_200k_siemreap_arial.py scripts/upload_to_hub.py
+uv run python -m py_compile scripts/train_200k_resnet34_bigru.py scripts/serve.py scripts/generate_200k_siemreap_arial.py scripts/upload_to_hub.py
 ```
 
 Smoke-test text generation only:
@@ -247,7 +247,7 @@ The YOLO detector is not trained by default. `scripts/prepare_yolo_text_detector
 
 Keep source changes focused on:
 
-- `scripts/train_200k.py`
+- `scripts/train_200k_resnet34_bigru.py`
 - `scripts/serve.py`
 - `scripts/generate_200k_siemreap_arial.py`
 - `scripts/upload_to_hub.py`

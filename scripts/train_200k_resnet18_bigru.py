@@ -7,7 +7,7 @@ import torchvision.models as tv
 
 
 sys.path.insert(0, os.path.dirname(__file__))
-import train_200k  # noqa: E402
+import train_200k_resnet34_bigru as train_200k  # noqa: E402
 
 
 class KhmerCRNN_ResNet18_BiGRU(nn.Module):
