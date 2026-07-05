@@ -479,6 +479,20 @@ def run_training(args):
             metadata = {
                 "epoch": str(epoch),
                 "loss": f"{avg_val_loss:.6f}",
+                "val_loss": f"{avg_val_loss:.6f}",
+                "val_cer": f"{val_cer:.8f}",
+                "val_cer_percent": f"{val_cer * 100:.4f}",
+                "train_loss": f"{avg_train_loss:.6f}",
+                "batch_size": str(args.batch_size),
+                "lr": str(args.lr),
+                "height": str(args.height),
+                "epochs": str(args.epochs),
+                "data_dir": str(args.data_dir),
+                "model_arch": str(getattr(args, "model_arch", "ResNet34_BiGRU_CTC")),
+                "val_split": str(args.val_split),
+                "test_split": str(args.test_split),
+                "max_text_len": str(args.max_text_len),
+                "vocab_size": str(vocab_size),
                 "vocab": str(vocab),
                 "c2i": json.dumps(c2i)
             }
@@ -510,6 +524,28 @@ def run_training(args):
     test_cer = calculate_normalized_cer(test_preds, test_tgts, num_workers=args.num_workers)
 
     print(f"Final Test CER (Normalized): {test_cer * 100:.2f}%")
+
+    summary_path = os.path.join(args.checkpoint_dir, "run_summary.json")
+    summary = {
+        "model_arch": str(getattr(args, "model_arch", "ResNet34_BiGRU_CTC")),
+        "data_dir": str(args.data_dir),
+        "epochs": args.epochs,
+        "batch_size": args.batch_size,
+        "lr": args.lr,
+        "height": args.height,
+        "val_split": args.val_split,
+        "test_split": args.test_split,
+        "max_text_len": args.max_text_len,
+        "vocab_size": vocab_size,
+        "train_records": len(train_ds),
+        "val_records": len(val_ds),
+        "test_records": len(test_ds),
+        "test_cer": test_cer,
+        "test_cer_percent": test_cer * 100,
+    }
+    with open(summary_path, "w", encoding="utf-8") as f:
+        json.dump(summary, f, ensure_ascii=False, indent=2)
+    print(f"Saved run summary to {summary_path}")
 
 
 if __name__ == "__main__":

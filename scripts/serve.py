@@ -15,6 +15,7 @@ import torchvision.transforms as T
 
 from src.model import KhmerCRNN_BiGRU
 from src.decode import ctc_greedy_decode
+from streamlit_paste_button import paste_image_button
 
 try:
     from ultralytics import YOLO
@@ -231,8 +232,19 @@ with st.sidebar:
 
 uploaded = st.file_uploader("Upload a Khmer text image", type=["png", "jpg", "jpeg", "bmp", "webp"])
 
+paste_result = paste_image_button(
+    label="📋 Paste Image from Clipboard",
+    background_color="#2980b9",
+    hover_background_color="#3498db"
+)
+
+image = None
 if uploaded is not None:
     image = Image.open(uploaded)
+elif paste_result is not None and paste_result.image_data is not None:
+    image = paste_result.image_data
+
+if image is not None:
     
     # 1. Run YOLO text detector first if loaded
     boxes = []

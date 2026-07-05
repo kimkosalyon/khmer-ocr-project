@@ -1,0 +1,111 @@
+\documentclass[tikz,border=5mm]{standalone}
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\usetikzlibrary{arrows.meta, positioning, calc, fit, backgrounds}
+
+\begin{document}
+\rmfamily
+\begin{tikzpicture}[
+    thick,
+    node distance=1.0cm and 1.8cm,
+    cell/.style={
+        draw,
+        minimum width=2.2cm,
+        minimum height=9mm,
+        align=center,
+        font=\small\bfseries,
+        rounded corners=2pt
+    },
+    fwd/.style={cell, fill=blue!10, draw=blue!60, text=blue!50!black},
+    bwd/.style={cell, fill=orange!5, draw=orange!60, text=orange!50!black},
+    io/.style={
+        draw,
+        circle,
+        minimum size=7mm,
+        inner sep=0pt,
+        draw=blue!50,
+        fill=white,
+        font=\small
+    },
+    label/.style={font=\small\itshape\bfseries},
+    >={Stealth[round]}
+]
+
+    % ==========================================
+    % 1. POSITIONING THE NODES
+    % ==========================================
+    
+    % Time Step t-1
+    \node[io] (x1) at (0,0) {$x_{t-1}$};
+    \node[fwd] (f1) [above=1.2cm of x1] {Forward\\GRU};
+    \node[bwd] (b1) at ($(f1) + (1.3, 1.5)$) {Backward\\GRU};
+    \node[io] (c1) at ($(f1.north) + (0, 2.5)$) {$\oplus$};
+    \node[above=0.2cm of c1, font=\small] (y1) {$y_{t-1}$};
+
+    % Time Step t
+    \node[io] (x2) at (4.0,0) {$x_{t}$};
+    \node[fwd] (f2) [above=1.2cm of x2] {Forward\\GRU};
+    \node[bwd] (b2) at ($(f2) + (1.3, 1.5)$) {Backward\\GRU};
+    \node[io] (c2) at ($(f2.north) + (0, 2.5)$) {$\oplus$};
+    \node[above=0.2cm of c2, font=\small] (y2) {$y_{t}$};
+
+    % Time Step t+1
+    \node[io] (x3) at (8.0,0) {$x_{t+1}$};
+    \node[fwd] (f3) [above=1.2cm of x3] {Forward\\GRU};
+    \node[bwd] (b3) at ($(f3) + (1.3, 1.5)$) {Backward\\GRU};
+    \node[io] (c3) at ($(f3.north) + (0, 2.5)$) {$\oplus$};
+    \node[above=0.2cm of c3, font=\small] (y3) {$y_{t+1}$};
+
+    % Layer Labels
+    \node[label, below=0.4cm of x2] {Input Layer};
+    \node[label, above=0.6cm of c2] {Output Layer};
+
+    % ==========================================
+    % 2. CONNECTIONS & ROUTING
+    % ==========================================
+    \begin{scope}[draw=orange!80, -{Stealth[round]}, thick]
+        \foreach \i in {1,2,3} {
+            % Main vertical path: Input -> Forward GRU -> Summation -> Output
+            \draw (x\i) -- (f\i);
+            \draw (f\i) -- (c\i);
+            \draw (c\i) -- (y\i);
+            
+            % Input branching out to Backward GRU (Right -> Up)
+            \draw ($(x\i.north)!0.4!(f\i.south)$) -| (b\i.south);
+            
+            % Backward GRU to Summation (Up -> Left -> into circle)
+            \draw (b\i.north) |- (c\i.east);
+        }
+
+        % Horizontal Forward Chains (Left to Right)
+        \draw [dashed] ($(f1.west) - (0.6,0)$) -- (f1.west);
+        \draw (f1) -- (f2);
+        \draw (f2) -- (f3);
+        \draw [dashed] (f3.east) -- ($(f3.east) + (0.6,0)$);
+
+        % Horizontal Backward Chains (Right to Left)
+        \draw [dashed] ($(b3.east) + (0.6,0)$) -- (b3.east);
+        \draw (b3) -- (b2);
+        \draw (b2) -- (b1);
+        \draw [dashed] (b1.west) -- ($(b1.west) - (0.6,0)$);
+    \end{scope}
+
+    % ==========================================
+    % 3. BIDIRECTIONAL LAYER BOUNDING BOX
+    % ==========================================
+    \begin{backgroundlayer}
+        \node[
+            draw=blue!40, 
+            dashed, 
+            rounded corners=12pt, 
+            inner sep=15pt, 
+            fit=(f1) (b3),
+            line width=1pt
+        ] (bbox) {};
+        
+        % Side label for the box
+        \node[label, align=center, rotate=90, left=0.4cm of bbox.west] {Bidirectional\\Layer};
+    \end{backgroundlayer}
+
+\end{tikzpicture}
+\end{document}

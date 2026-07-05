@@ -1,0 +1,85 @@
+\documentclass[tikz,border=5mm]{standalone}
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\usetikzlibrary{positioning}
+
+\begin{document}
+\rmfamily
+\begin{tikzpicture}[
+    thick,
+    node distance=0.9cm and 1.5cm,
+    base/.style={
+        draw, 
+        minimum width=5.5cm, 
+        minimum height=0.9cm, 
+        align=center, 
+        font=\small\bfseries, 
+        rounded corners=4pt,
+        line width=0.8pt
+    },
+    input/.style={base, fill=gray!10, draw=gray!40},
+    vision/.style={base, fill=blue!5, draw=blue!40},
+    seq_proc/.style={base, fill=purple!5, draw=purple!40},
+    recog/.style={base, fill=orange!5, draw=orange!50, line width=1.1pt},
+    output/.style={base, fill=teal!5, draw=teal!40},
+    shape_node/.style={font=\footnotesize\ttfamily\color{blue!50!black}, anchor=west},
+    stage_label/.style={font=\small\bfseries, fill=white, inner sep=3pt} 
+]
+
+    % ==========================================
+    % 1. MAIN NODES (Chained with Gaps)
+    % ==========================================
+    
+    % STAGE I HEADER
+    \node[font=\small\bfseries\color{blue!80!black}] (h1) {STAGE I: FEATURE EXTRACTION};
+    
+    % FIXED: Set to use your exact uploaded file name: Siemreap-Regular.ttf
+    \node[input, below=0.2cm of h1] (in) {1. Input Image\\{\normalfont Grayscale Text-Line ({\fontspec{Siemreap-Regular.ttf}[Script=Khmer,Scale=0.95]អក្សរខ្មែរ})}};
+    \node[shape_node] (s_in) at (in.east) [xshift=0.4cm] {(B, 1, 64, W)};
+    
+    \node[vision, below=of in] (cnn) {2. Modified ResNet Backbone\\{\normalfont ResNet18 / ResNet34 (Stride 2,1)}};
+    \node[shape_node] (s_cnn) at (cnn.east) [xshift=0.4cm] {(B, 512, H', W')};
+    
+    \node[vision, below=of cnn] (fmap) {3. High-Level Visual Feature Map\\{\normalfont Encoded Image Representations}};
+    \node[shape_node] (s_fmap) at (fmap.east) [xshift=0.4cm] {(B, 512, H', W')};
+    
+    % Open spacing slot for Stage II label overlay
+    \node[seq_proc, below=1.8cm of fmap] (vpool) {4. Vertical Mean Pooling\\{\normalfont Collapses Height Dimension}};
+    \node[shape_node] (s_vpool) at (vpool.east) [xshift=0.4cm] {(B, 512, W')};
+    
+    \node[seq_proc, below=of vpool] (format) {5. Sequence Formatting\\{\normalfont Permute Width to Time Steps ($T = W'$)}};
+    \node[shape_node] (s_format) at (format.east) [xshift=0.4cm] {(T, B, 512)};
+    
+    % Open spacing slot for Stage III label overlay
+    \node[recog, below=1.8cm of format] (bigru) {6. 2-Layer BiGRU Sequence Encoder\\{\normalfont Context Mapping (Left $\leftrightarrow$ Right)}};
+    \node[shape_node] (s_bigru) at (bigru.east) [xshift=0.4cm] {(T, B, 512)};
+    
+    \node[recog, below=of bigru] (linear) {7. Linear Classifier Head\\{\normalfont Project to Character Vocab Space}};
+    \node[shape_node] (s_linear) at (linear.east) [xshift=0.4cm] {(T, B, 193)};
+    
+    \node[recog, below=of linear] (ctc) {8. CTC Loss / CTC Decoding\\{\normalfont Collapse Duplicates \& Remove Blanks}};
+    
+    % FIXED: Set to use your exact uploaded file name: Siemreap-Regular.ttf
+    \node[output, below=of ctc] (out) {9. Output Text Recognition\\{\normalfont Final Target Character String}};
+    \node[shape_node, font=\small\color{teal!50!black}] (s_out) at (out.east) [xshift=0.4cm] {``{\fontspec{Siemreap-Regular.ttf}[Script=Khmer,Scale=0.95]អក្សរខ្មែរ}''};
+
+    % ==========================================
+    % 2. CONNECTIONS (Standard Straight Arrows)
+    % ==========================================
+    \draw[->] (in) -- (cnn);
+    \draw[->] (cnn) -- (fmap);
+    \draw[->] (fmap) -- (vpool);   
+    \draw[->] (vpool) -- (format);
+    \draw[->] (format) -- (bigru); 
+    \draw[->] (bigru) -- (linear);
+    \draw[->] (linear) -- (ctc);
+    \draw[->] (ctc) -- (out);
+
+    % ==========================================
+    % 3. OVERLAY LABELS (Masks lines natively)
+    % ==========================================
+    \path (fmap) -- node[stage_label, text=purple!80!black] {STAGE II: SEQUENCE MAPPING} (vpool);
+    \path (format) -- node[stage_label, text=orange!80!black] {STAGE III: DECODING \& PREDICTION} (bigru);
+
+\end{tikzpicture}
+\end{document}

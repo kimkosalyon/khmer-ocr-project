@@ -1,0 +1,72 @@
+\documentclass[tikz,border=5mm]{standalone}
+\usepackage{pgfplots}
+\usepgfplotslibrary{groupplots}
+\pgfplotsset{compat=1.18}
+
+\begin{document}
+\sffamily
+\begin{tikzpicture}
+    \begin{groupplot}[
+        group style={
+            group size=1 by 2,
+            vertical sep=1.5cm,
+            xlabels at=edge bottom,
+            xticklabels at=edge bottom
+        },
+        width=12cm,
+        height=6cm,
+        grid=both,
+        grid style={line width=.1pt, draw=gray!10},
+        major grid style={line width=.2pt, draw=gray!20},
+        xmin=0, xmax=26,
+        xtick={1,5,10,15,20,25},
+        tick label style={font=\footnotesize}
+    ]
+
+    % --------------------------------------------------
+    % CHART 1: VALIDATION LOSS
+    % --------------------------------------------------
+    \nextgroupplot[
+        title={\bfseries ResNet34 Validation Loss},
+        ylabel={\bfseries Loss (CTC)},
+        ylabel style={align=center},
+        ymin=0, ymax=1.0,
+        ytick={0, 0.25, 0.5, 0.75, 1.0},
+        legend style={at={(0.5,1.15)}, anchor=south, legend columns=-1, font=\footnotesize, draw=none, fill=none}
+    ]
+    \addplot[color=blue!70!black, mark=square*, thick, mark size=1.5pt] coordinates {
+        (1, 0.729830) (2, 0.178840) (3, 0.055744) (4, 0.047783)
+        (5, 0.036029) (6, 0.883362) (7, 0.029081) (8, 0.026788)
+        (9, 0.026495) (10, 0.023068) (15, 0.020919) (20, 0.009163) (25, 0.008510)
+    };
+    \addlegendentry{Validation Loss}
+
+    % --------------------------------------------------
+    % CHART 2: ACCURACY AND CER
+    % --------------------------------------------------
+    \nextgroupplot[
+        title={\bfseries ResNet34 OCR Performance},
+        xlabel={\bfseries Epoch},
+        ylabel={\bfseries Performance (\%)},
+        ymin=0, ymax=100,
+        ytick={0, 20, 40, 60, 80, 100},
+        legend style={at={(0.5,-0.35)}, anchor=north, legend columns=-1, font=\footnotesize, draw=none}
+    ]
+
+    \addplot[color=green!60!black, mark=*, thick, mark size=1.5pt] coordinates {
+        (1, 2.23) (2, 33.11) (3, 70.50) (4, 77.03)
+        (5, 83.89) (6, 74.83) (7, 84.90) (8, 85.22)
+        (9, 84.73) (10, 86.41) (15, 89.33) (20, 95.20) (25, 95.70)
+    };
+    \addlegendentry{Exact Match Accuracy}
+
+    \addplot[color=red!70!black, mark=triangle*, thick, dashed, mark size=2pt] coordinates {
+        (1, 17.97) (2, 5.10) (3, 1.11) (4, 0.87)
+        (5, 0.52) (6, 0.87) (7, 0.56) (8, 0.54)
+        (9, 0.54) (10, 0.50) (15, 0.60) (20, 0.18) (25, 0.16)
+    };
+    \addlegendentry{Character Error Rate (CER)}
+
+    \end{groupplot}
+\end{tikzpicture}
+\end{document}
