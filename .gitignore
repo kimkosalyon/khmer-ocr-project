@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Generated datasets and artifacts
+generated/
+generated_siemreap/
+generated_test/
+generated_texts/
+
+# Checkpoints
+checkpoints/
+checkpoints_200k/
+
+# MLflow experiment tracking
+mlruns/
+
+# Text corpus
+kmwiki_data/
+
+# YOLO detector weights
+detectors/
+yolov8n.pt
+
+# Environment
+.env
+
+# Renderer
+renderer/node_modules/
+renderer/frontend/node_modules/
+renderer/output.png
+
+# Marimo session data
+__marimo__/
+
+# Archives
+*.7z
+*.zip
+
+# Databases (regenerable)
+*.duckdb
+
+# OS files
+.DS_Store
+
+

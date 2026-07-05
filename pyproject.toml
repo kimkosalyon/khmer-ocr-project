@@ -1,0 +1,38 @@
+[project]
+name = "khmer-ocr"
+version = "0.1.0"
+description = "CRNN + BiGRU OCR for Khmer Hanuman dataset"
+requires-python = ">=3.10"
+dependencies = [
+  "torch>=2.11.0",
+  "torchvision>=0.26.0",
+  "datasets",
+  "pillow",
+  "tqdm",
+  "marimo",
+  "pydantic-ai>=2.3.0",
+  "click>=8.4.2",
+  "safetensors>=0.8.0",
+  "python-dotenv>=1.2.2",
+  "mlflow>=3.14.0",
+  "streamlit>=1.58.0",
+  "uharfbuzz>=0.55.0",
+  "freetype-py>=2.5.1",
+  "pandas>=2.3.3",
+  "duckdb>=1.5.4",
+  "khmernormalizer>=0.0.4",
+  "ultralytics>=8.3.0",
+]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu130", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+  { index = "pytorch-cu130", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
