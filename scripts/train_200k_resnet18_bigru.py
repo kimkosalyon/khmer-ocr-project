@@ -11,34 +11,65 @@ import train_200k  # noqa: E402
 
 
 class KhmerCRNN_ResNet18_BiGRU(nn.Module):
-    """CRNN (ResNet18 backbone) + Bidirectional GRU for faster CTC OCR training."""
+    """
+    OCR model consisting of a modified ResNet18 backbone for visual feature extraction,
+    followed by a 2-layer Bidirectional GRU for sequence mapping, and a CTC output projection.
+    """
 
     def __init__(self, vocab_size, hidden=256):
         super().__init__()
+        # 1. Initialize a standard PyTorch ResNet18 model without pre-trained ImageNet weights
         rn = tv.resnet18(weights=None)
-        rn.conv1 = nn.Conv2d(1, 64, 7, 2, 3, bias=False)
+        
+        # 2. Modify the first convolution layer to accept 1-channel grayscale input (instead of 3-channel RGB)
+        rn.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        
+        # 3. Group stem layers and standard layers together (shape changes: H/4, W/8)
         self.stem = nn.Sequential(rn.conv1, rn.bn1, rn.relu, rn.maxpool, rn.layer1, rn.layer2)
         self.layer3 = rn.layer3
         self.layer4 = rn.layer4
 
-        # Preserve width for CTC while still reducing height.
+        # 4. Patch Layers 3 and 4: Replace vertical downsampling with horizontal width preservation.
+        #    We change downsampling strides from (2, 2) to (2, 1) in Layer 3 and Layer 4.
         for b in [self.layer3, self.layer4]:
             for block in b:
+                # Modify main path: change downsample convolution stride
                 if hasattr(block, "conv1") and block.conv1.stride != (1, 1):
                     block.conv1.stride = (2, 1)
+                # Modify shortcut path: change skip-connection projection stride to match main path
                 if block.downsample is not None:
                     block.downsample[0].stride = (2, 1)
 
+        # 5. Bidirectional GRU sequence layer (receives 512-dim features from collapsed CNN output)
         self.bigru = nn.GRU(512, hidden, num_layers=2, bidirectional=True, dropout=0.2)
+        
+        # 6. Final linear projection mapping hidden states (hidden * 2 due to bidirectionality) to vocab size
         self.fc = nn.Linear(hidden * 2, vocab_size)
 
     def forward(self, x):
+        # Input shape: (BatchSize, 1, 64, Width)
+        
+        # Pass through stem and Layer1/2. Shape becomes: (BatchSize, 128, 8, Width / 8)
         f = self.stem(x)
+        
+        # Pass through Layer3. Stride (2, 1) changes shape to: (BatchSize, 256, 4, Width / 8)
         f = self.layer3(f)
+        
+        # Pass through Layer4. Stride (2, 1) changes shape to: (BatchSize, 512, 2, Width / 8)
         f = self.layer4(f)
+        
+        # Vertical Mean Pooling: Average values vertically over the height dimension (dim 2)
+        # Output shape: (BatchSize, 512, Width / 8)
         f = f.mean(dim=2)
+        
+        # Permute for Recurrent Network input: (TimeSteps, BatchSize, Channels)
+        # Output shape: (TimeSteps, BatchSize, 512) where TimeSteps = Width / 8
         f = f.permute(2, 0, 1)
+        
+        # Process sequence with bidirectional GRU. Output shape: (TimeSteps, BatchSize, hidden * 2)
         out, _ = self.bigru(f)
+        
+        # Project each time step to character vocabulary logits. Output shape: (TimeSteps, BatchSize, VocabSize)
         return self.fc(out)
 
 
